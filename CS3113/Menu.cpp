@@ -9,25 +9,25 @@ Menu::~Menu() { shutdown(); }
 
 void Menu::initialise()
 {
+    mBackgroundImage = LoadTexture("assets/game/library.png");
     mGameState.nextSceneID = -1;
-
-    mBackgroundImage = LoadTexture("assets/game/hauntedmansion.png");
+    mCurrentInstructionIndex = 0;
+    mInstructionsComplete = false;
 }
 
 void Menu::update(float deltaTime)
 { 
-    if (IsKeyPressed(KEY_ENTER))
+    if (IsKeyPressed(KEY_SPACE) && !mInstructionsComplete)
     {
-        mGameState.nextSceneID = 1; 
+        mCurrentInstructionIndex++;
+        if (mCurrentInstructionIndex >= mTotalInstructions){ mInstructionsComplete = true;}
     }
+    if (IsKeyPressed(KEY_ENTER) && mInstructionsComplete){ mGameState.nextSceneID = 1;}
 }
+
 
 void Menu::render()
 {
-    DrawRectangle(100, 100, 200, 200, RED);
-    ClearBackground(ColorFromHex(mBGColourHexCode));
-    
-    
     DrawTexturePro(
         mBackgroundImage,
         {0, 0, (float)mBackgroundImage.width, (float)mBackgroundImage.height}, 
@@ -37,24 +37,49 @@ void Menu::render()
         WHITE
     );
 
-    const char* startText = "Press ENTER to start";
-    
-    int startFontSize = 30;
-    
-    int startWidth = MeasureText(startText, startFontSize);
-    
-    
-    DrawText(
-        startText,
-        mOrigin.x - startWidth / 2,
-        mOrigin.y + 150,
-        startFontSize,
-        RAYWHITE
-    );
+    int boxWidth = 720;
+    int boxHeight = 160;
+    int boxX = mOrigin.x - boxWidth / 2;
+    int boxY = 260;
+
+
+    DrawRectangle(boxX, boxY, boxWidth, boxHeight, Fade(BLACK, 0.70f));
+    DrawRectangleLines(boxX, boxY, boxWidth, boxHeight, RAYWHITE);
+
+    if (!mInstructionsComplete)
+    {
+        const char* currentInstruction = mInstructions[mCurrentInstructionIndex];
+        int textWidth = MeasureText(currentInstruction, 26);
+        
+        DrawText(
+            currentInstruction,
+            mOrigin.x - textWidth / 2,
+            boxY + 70,
+            26,
+            RAYWHITE
+        );
+        
+        // Prompt
+        const char* prompt = "Press SPACE for next";
+        int promptWidth = MeasureText(prompt, 22);
+        DrawText(prompt, mOrigin.x - promptWidth / 2, boxY + boxHeight + 35, 22, GRAY);
+    }
+    else
+    {
+        const char* readyText = "Good luck escaping the library!";
+        int readyWidth = MeasureText(readyText, 28);
+        DrawText(readyText, mOrigin.x - readyWidth / 2, boxY + 65, 28, RAYWHITE);
+        
+        const char* startText = "Press ENTER to begin";
+        int startWidth = MeasureText(startText, 26);
+        DrawText(startText, mOrigin.x - startWidth / 2, boxY + boxHeight + 35, 26, GRAY);
+    }
+
+   
 }
 
 
 void Menu::shutdown()
 {
-    UnloadTexture(mBackgroundImage); 
+    //UnloadTexture(mBackgroundImage); 
 }

@@ -1,3 +1,14 @@
+/**
+* Author: Sarah Aljonubi
+* Assignment: Rise of the AI
+* Date due: 2025-11-08, 11:59pm
+* I pledge that I have completed this assignment without
+* collaborating with anyone else, in conformance with the
+* NYU School of Engineering Policies and Procedures on
+* Academic Misconduct.
+**/
+
+
 #include "CS3113/Menu.h" 
 #include "CS3113/LevelA.h" 
 #include "CS3113/LevelB.h"
@@ -171,7 +182,7 @@ int main(void)
         
         if (nextID >= 0 && nextID < NUMBER_OF_LEVELS)
         {
-            
+
             if (nextID == 0) {
                 gPlayerLives = 3;
             }

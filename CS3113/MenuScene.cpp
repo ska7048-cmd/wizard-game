@@ -25,7 +25,7 @@ void MenuScene::render()
    // clear background using your helper
     ClearBackground(ColorFromHex(mBGColourHexCode));
 
-    const char* title  = "Haunted Adventures";
+    const char* title  = "Hogwarts Library";
     const char* prompt = "Press ENTER to start";
 
     int sw = GetScreenWidth();
