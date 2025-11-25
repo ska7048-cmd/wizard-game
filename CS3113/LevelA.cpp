@@ -138,6 +138,15 @@ void LevelA::initialise()
       mItemCollected[i] = false;
    }
    mItemsCollectedCount = 0;
+
+      /*
+      ----------- CAMERA -----------
+   */
+   mGameState.camera = { 0 };                                    // zero initialize
+   mGameState.camera.target = mGameState.xochitl->getPosition(); // camera follows player
+   mGameState.camera.offset = mOrigin;                           // camera offset to center of screen
+   mGameState.camera.rotation = 0.0f;                            // no rotation
+   mGameState.camera.zoom = 1.0f;                                // default zoom
 }
 
 void LevelA::update(float deltaTime)
@@ -176,6 +185,7 @@ void LevelA::update(float deltaTime)
       return;
    }
 
+   panCamera(&mGameState.camera, &currentPlayerPosition);
    Vector2 currentPlayerPosition = { mGameState.xochitl->getPosition().x, mGameState.xochitl->getPosition().y };
 
    checkItems();
@@ -289,4 +299,5 @@ void LevelA::shutdown()
    UnloadSound(mLevelCompleteSound); 
    UnloadSound(mPickupSound);
    UnloadSound(mSpottedSound);
+
 }
