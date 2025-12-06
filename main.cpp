@@ -15,6 +15,7 @@
 #include "CS3113/LevelC.h"
 #include "CS3113/WinScene.h" 
 #include "CS3113/LoseScene.h" 
+#include "CS3113/ShaderProgram.h" 
 
 // Global Constants
 constexpr int SCREEN_WIDTH     = 1000,
@@ -24,12 +25,14 @@ constexpr int SCREEN_WIDTH     = 1000,
               
 
 constexpr Vector2 ORIGIN      = { SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 };
+Vector2 gLightPosition = { 0.0f, 0.0f };
 
             
 constexpr float FIXED_TIMESTEP = 1.0f / 60.0f;
 
 // Global Variables
 AppStatus gAppStatus   = RUNNING;
+ShaderProgram gShader;
 int gPlayerLives = 3;
 
 float gPreviousTicks   = 0.0f,
@@ -61,9 +64,11 @@ void switchToScene(Scene *scene)
 
 void initialise()
 {
-    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "haunted mansion");
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "midnight library at hogwarts");
     InitAudioDevice();
 
+    gShader.load("shaders/vertex.glsl", "shaders/fragment.glsl");
+    
     gMenu = new Menu(ORIGIN, "#1a1a2e");
     gLevelA = new LevelA(ORIGIN, "#3b2f2cff");
     gLevelB = new LevelB(ORIGIN, "#011627");
@@ -125,6 +130,10 @@ void update()
 
     while (deltaTime >= FIXED_TIMESTEP)
     {
+        if (gCurrentScene != gMenu && gCurrentScene != gWinScene && gCurrentScene != gLoseScene)
+        {
+            gLightPosition = gCurrentScene->getState().xochitl->getPosition();
+        }
         gCurrentScene->update(FIXED_TIMESTEP);
         deltaTime -= FIXED_TIMESTEP;
     }
@@ -133,23 +142,39 @@ void update()
 void render()
 {
     BeginDrawing();
+
     if (gCurrentScene != gMenu && gCurrentScene != gWinScene && gCurrentScene != gLoseScene)
     {
         BeginMode2D(gCurrentScene->getState().camera);
+        gShader.begin();
     }
 
     gCurrentScene->render();
 
     if (gCurrentScene != gMenu && gCurrentScene != gWinScene && gCurrentScene != gLoseScene)
     {
+        gShader.setVector2("lightPosition", gLightPosition); 
+        gShader.setInt("isCharging", 1);
+        
         EndMode2D();
-    
-        char livesText[20];
-        sprintf(livesText, "Lives: %d", gPlayerLives);
-        DrawText(livesText, 20, 20, 30, RED);
+        gShader.end();
+
+        if (gCurrentScene == gLevelA) {
+            gLevelA->drawScreen();  
+        }
+        else if (gCurrentScene == gLevelB) {
+            gLevelB->drawScreen(); 
+        }
+        else if (gCurrentScene == gLevelC) {
+            gLevelC->drawScreen(); 
+        }
+        
+    }
+    else
+    {
+        gCurrentScene->render();
     }
     
-
     EndDrawing();
 }
 
@@ -165,6 +190,7 @@ void shutdown()
     
     for (int i = 0; i < NUMBER_OF_LEVELS; i++) gLevels[i] = nullptr;
 
+    gShader.unload();
     CloseAudioDevice();
     CloseWindow();
 }

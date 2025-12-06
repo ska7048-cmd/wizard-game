@@ -1,41 +1,63 @@
+#include "LevelA.h"
 
 #ifndef LEVELC_H
 #define LEVELC_H
 
-#include "LevelA.h"
 
 class LevelC : public Scene {
 private:
     Texture2D mBackgroundTexture;
-    Entity* mEnemy;
-    Sound mFallingSound;
+
+    Entity* mMrFlinch;
+    Entity* mCat;  
+    Entity* mOwl;   
+
+    Entity* mItems[5];
+    bool mItemCollected[5] = {false, false, false, false, false};
+    int mItemsCollectedCount = 0;
+    bool mShowExitPrompt = false;
+
+    
+    Sound mPickupSound;
+    Sound mSpottedSound;
     Sound mLevelCompleteSound;
 
+    static constexpr int TOTAL_ITEMS = 5;
+    
     unsigned int mLevelData[LEVEL_WIDTH * LEVEL_HEIGHT] = {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  
-        0, 0, 0, 0, 0, 0, 4, 3, 0, 0, 0, 0, 0, 0, 0, 0,  
-        0, 0, 0, 3, 0, 4, 3, 2, 5, 0, 0, 0, 0, 0, 0, 0, 
-        0, 0, 4, 2, 2, 3, 2, 2, 2, 2, 5, 3, 0, 0, 0, 0,
-        0, 4, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0,  
-        0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0,
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, // 5 is door
+        3, 2, 2, 2, 2, 2, 2, 3, 2, 2, 3, 2, 2, 2, 2, 2, 3, 3, 3, 3, // 4 is table
+        3, 2, 2, 2, 2, 2, 2, 3, 2, 2, 3, 2, 2, 2, 3, 3, 3, 2, 2, 3, // 3 is bookshelf
+        3, 3, 3, 3, 2, 2, 2, 3, 2, 2, 3, 2, 2, 2, 3, 2, 2, 2, 2, 3, // 2 is tile
+        3, 2, 2, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 2, 2, 2, 2, 3,
+        3, 2, 2, 3, 3, 3, 2, 2, 2, 4, 2, 3, 2, 2, 2, 2, 2, 2, 2, 3,
+        3, 2, 2, 2, 2, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3,
+        3, 2, 2, 4, 2, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 5,
+        3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 5,
+        3, 2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 3, 3, 3, 2, 2, 2, 3,
+        3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 2, 2, 2, 2, 2, 3,
+        3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 2, 2, 2, 2, 2, 3,
+        3, 2, 2, 2, 3, 2, 2, 3, 2, 2, 2, 2, 2, 3, 2, 2, 4, 4, 2, 3,
+        3, 2, 2, 2, 3, 2, 2, 3, 2, 2, 2, 2, 2, 3, 2, 2, 2, 2, 2, 3,
+        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
     };
-
 public:
-    static constexpr float TILE_DIMENSION       = 75.0f,
-                        ACCELERATION_OF_GRAVITY = 981.0f,
-                        END_GAME_THRESHOLD      = 800.0f;
+    static constexpr float TILE_DIMENSION       = 50.0f;
+                        //ACCELERATION_OF_GRAVITY = 981.0f,
+                        //END_GAME_THRESHOLD      = 800.0f;
 
     LevelC();
     LevelC(Vector2 origin, const char *bgHexCode);
     ~LevelC();
-    
+
     void initialise() override;
     void update(float deltaTime) override;
     void render() override;
     void shutdown() override;
+
+    void checkItems();
+    void checkDoorExit();
+    void drawScreen();
 };
-#endif 
+
+#endif

@@ -10,11 +10,11 @@ void LevelA::initialise()
    mGameState.nextSceneID = -1;
 
    mGameState.bgm = LoadMusicStream("assets/game/bluefeather.mp3");
-   mPickupSound = LoadSound("assets/game/life_pickup.flaq");
+   mPickupSound = LoadSound("assets/game/catpickup.mp3");
    mSpottedSound = LoadSound("assets/game/spotted.mp3");
-   mLevelCompleteSound = LoadSound("assets/audio/level_complete.wav");
+   mLevelCompleteSound = LoadSound("assets/game/level_complete.mp3");
    
-   SetMusicVolume(mGameState.bgm, 0.5f);
+   SetMusicVolume(mGameState.bgm, 0.3f);
    PlayMusicStream(mGameState.bgm);
 
    const char* itemImages[5] = {
@@ -53,7 +53,7 @@ void LevelA::initialise()
 
    mGameState.xochitl = new Entity(
       {500.0f, 400.0f}, // position
-      {50.0f, 50.0f},             // scale
+      {100.0f, 90.0f},             // scale
       "assets/game/harry.jpeg",                   // texture file address
       ATLAS,                                    // single image or atlas?
       { 4, 4 },                                 // atlas dimensions
@@ -62,6 +62,7 @@ void LevelA::initialise()
    );
 
    mGameState.xochitl->setSpeed(150);
+   mGameState.xochitl->setColliderDimensions({30.0f, 30.0f}); 
 
    /*
       ----------- MR FLINCH -----------
@@ -81,14 +82,13 @@ void LevelA::initialise()
       {40.0f, 40.0f},  
       "assets/game/mrflinch.png",  
       ATLAS,  
-      {3, 4},  
+      {4, 3},  
       flinchAnimationAtlas, 
       ENEMY  
    );
    mMrFlinch->setAIType(WANDERER);
    mMrFlinch->setAIState(WALKING);
-   mMrFlinch->setSpeed(50); 
-
+   mMrFlinch->setSpeed(15); 
 
    /*
       ----------- CAT -----------
@@ -104,16 +104,17 @@ void LevelA::initialise()
   
    mCat = new Entity(
       {700.0f, 300.0f},
-      {40.0f, 40.0f},  
+      {80.0f, 80.0f}, 
       "assets/game/cat.png",  
       ATLAS,  
-      {4, 1},  
+      {1, 4},  
       catAnimationAtlas, 
       ENEMY  
    );
    mCat->setAIType(FOLLOWER);
    mCat->setAIState(IDLE);
-   mCat->setSpeed(50); 
+   mCat->setColliderDimensions({30.0f, 30.0f});
+   mCat->setSpeed(10); 
 
 
 
@@ -124,7 +125,7 @@ void LevelA::initialise()
    Vector2 itemPositions[5] = {
       {200.0f, 150.0f}, 
       {800.0f, 150.0f}, 
-      {350.0f, 300.0f}, 
+      {350.0f, 325.0f}, 
       {650.0f, 300.0f},
       {500.0f, 450.0f}  
    };
@@ -139,7 +140,7 @@ void LevelA::initialise()
    }
    mItemsCollectedCount = 0;
 
-      /*
+   /*
       ----------- CAMERA -----------
    */
    mGameState.camera = { 0 };                                    // zero initialize
@@ -155,7 +156,7 @@ void LevelA::update(float deltaTime)
    extern int gPlayerLives;
 
    mGameState.xochitl->resetMovement();
-
+  
    if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) {
       mGameState.xochitl->moveUp();
    }
@@ -169,12 +170,31 @@ void LevelA::update(float deltaTime)
       mGameState.xochitl->moveRight();
    }
 
+   if (GetLength(mGameState.xochitl->getMovement()) != 0) {
+      mGameState.xochitl->normaliseMovement();
+   }
    mGameState.xochitl->update(deltaTime, nullptr, mGameState.map, nullptr, 0);  
    mMrFlinch->update(deltaTime, mGameState.xochitl, mGameState.map, nullptr, 0);
-   mCat->update(deltaTime, mGameState.xochitl, mGameState.map, nullptr, 0);
+   mCat->update(deltaTime, mGameState.xochitl, nullptr, nullptr, 0);
+
+   float distanceToFlinch = Vector2Distance(mGameState.xochitl->getPosition(), mMrFlinch->getPosition());
+   float distanceToCat = Vector2Distance(mGameState.xochitl->getPosition(), mCat->getPosition());
+
+   float minDistance = fmin(distanceToFlinch, distanceToCat);
+
+   if (minDistance < 150.0f) {
+      if (!IsSoundPlaying(mSpottedSound)) {
+         PlaySound(mSpottedSound);
+      }
+   }
+   else {
+      if (IsSoundPlaying(mSpottedSound)) {
+         StopSound(mSpottedSound);
+      }
+   }
 
    if (mGameState.xochitl->checkCollision(mMrFlinch) || mGameState.xochitl->checkCollision(mCat)) {
-      PlaySound(mSpottedSound);
+      StopSound(mSpottedSound);
       gPlayerLives--;
       
       if (gPlayerLives <= 0) {
@@ -185,8 +205,8 @@ void LevelA::update(float deltaTime)
       return;
    }
 
-   panCamera(&mGameState.camera, &currentPlayerPosition);
    Vector2 currentPlayerPosition = { mGameState.xochitl->getPosition().x, mGameState.xochitl->getPosition().y };
+   panCamera(&mGameState.camera, &currentPlayerPosition);
 
    checkItems();
    checkDoorExit();
@@ -206,16 +226,22 @@ void LevelA::checkItems(){
 void LevelA::checkDoorExit(){
 
    Vector2 playerPos = mGameState.xochitl->getPosition();
+   Vector2 colliderDims = mGameState.xochitl->getColliderDimensions();
    Vector2 mapOrigin = {500.0f, 300.0f};
 
-   int playerTileX = (int)((playerPos.x - mapOrigin.x + (LEVEL_WIDTH * TILE_DIMENSION) / 2) / TILE_DIMENSION);
-   int playerTileY = (int)((playerPos.y - mapOrigin.y + (LEVEL_HEIGHT * TILE_DIMENSION) / 2) / TILE_DIMENSION);
+   Vector2 headPosition = { 
+      playerPos.x, 
+      playerPos.y - colliderDims.y / 2.0f // i used feet position last time so i got help to use head position
+   };
+
+   int playerTileX = (int)((headPosition.x - mapOrigin.x + (LEVEL_WIDTH * TILE_DIMENSION) / 2) / TILE_DIMENSION);
+   int playerTileY = (int)((headPosition.y - mapOrigin.y + (LEVEL_HEIGHT * TILE_DIMENSION) / 2) / TILE_DIMENSION);
 
    if (playerTileX >= 0 && playerTileX < LEVEL_WIDTH && playerTileY >= 0 && playerTileY < LEVEL_HEIGHT) {
       int tileIndex = playerTileY * LEVEL_WIDTH + playerTileX;
       int tileType = mLevelData[tileIndex];
 
-      if (tileType == 4) {
+      if (tileType == 5) {
          mShowExitPrompt = true;
          if (mItemsCollectedCount >= TOTAL_ITEMS && IsKeyPressed(KEY_E)) {
             PlaySound(mLevelCompleteSound);
@@ -244,13 +270,13 @@ void LevelA::drawScreen(){
          const char* prompt = "Press E to exit to Level 2!";
          int promptWidth = MeasureText(prompt, 24); // I saw some kid in class have this and i really liked it
          DrawRectangle(0, 540, 1000, 60, ColorAlpha(BLACK, 0.7f));
-         DrawText(prompt, 500 - promptWidth / 2, 550, 24, WHITE);
+         DrawText(prompt, 500 - promptWidth / 2, 550, 24, RED);
       }
       else{
          const char* prompt = "Door locked! Find all books first.";
          int promptWidth = MeasureText(prompt, 20); 
          DrawRectangle(0, 540, 1000, 60, ColorAlpha(BLACK, 0.7f));
-         DrawText(prompt, 500 - promptWidth / 2, 555, 20, RED);
+         DrawText(prompt, 500 - promptWidth / 2, 550, 24, RED);
       }
    }
 
@@ -280,11 +306,16 @@ void LevelA::render()
    mGameState.xochitl->render();
    mMrFlinch->render();
    mCat->render();
-   drawScreen();
+   //drawScreen();
 }
 
 void LevelA::shutdown()
 {
+   StopMusicStream(mGameState.bgm);
+   StopSound(mSpottedSound);
+   StopSound(mPickupSound);
+   StopSound(mLevelCompleteSound);
+
    delete mGameState.xochitl;
    delete mGameState.map;
    delete mMrFlinch;

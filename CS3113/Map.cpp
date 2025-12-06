@@ -88,6 +88,7 @@ bool Map::isSolidTileAt(Vector2 position, float *xOverlap, float *yOverlap)
 
     int tile = mLevelData[tileYIndex * mMapColumns + tileXIndex];
     if (tile == 0) return false;
+    if (tile == 2) return false;
 
     float tileCentreX = mLeftBoundary + tileXIndex * mTileSize + mTileSize / 2.0f;
     float tileCentreY = mTopBoundary + tileYIndex * mTileSize + mTileSize / 2.0f;

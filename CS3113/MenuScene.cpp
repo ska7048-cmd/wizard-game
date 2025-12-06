@@ -22,7 +22,6 @@ void MenuScene::update(float deltaTime)
 
 void MenuScene::render()
 {
-   // clear background using your helper
     ClearBackground(ColorFromHex(mBGColourHexCode));
 
     const char* title  = "Hogwarts Library";
@@ -37,8 +36,8 @@ void MenuScene::render()
     int titleW  = MeasureText(title, titleSize);
     int promptW = MeasureText(prompt, promptSize);
 
-    DrawText(title, (sw - titleW)/2, sh/3, titleSize, RAYWHITE);
-    DrawText(prompt, (sw - promptW)/2, sh/3 + 80, promptSize, GRAY);
+    DrawText(title, (sw - titleW)/2, sh/2 - 40, titleSize, RAYWHITE);
+    DrawText(prompt, (sw - promptW)/2, sh/2 + 40, promptSize, GRAY);
 }
 
 void MenuScene::shutdown()

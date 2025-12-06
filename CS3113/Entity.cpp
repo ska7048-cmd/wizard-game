@@ -12,7 +12,7 @@ Entity::Entity() : mPosition {0.0f, 0.0f}, mMovement {0.0f, 0.0f},
 Entity::Entity(Vector2 position, Vector2 scale, const char *textureFilepath, 
     EntityType entityType) : mPosition {position}, mVelocity {0.0f, 0.0f}, 
     mAcceleration {0.0f, 0.0f}, mScale {scale}, mMovement {0.0f, 0.0f}, 
-    mColliderDimensions {scale}, mTexture {LoadTexture(textureFilepath)}, 
+    mColliderDimensions {scale * 0.7f}, mTexture {LoadTexture(textureFilepath)}, 
     mTextureType {SINGLE}, mDirection {RIGHT}, mAnimationAtlas {{}}, 
     mAnimationIndices {}, mFrameSpeed {0}, mSpeed {DEFAULT_SPEED}, 
     mAngle {0.0f}, mEntityType {entityType} { }
@@ -155,16 +155,16 @@ void Entity::checkCollisionX(Map *map)
 
     // COLLISION ON RIGHT (moving right)
     if (map->isSolidTileAt(rightCentreProbe, &xOverlap, &yOverlap) 
-         && mVelocity.x > 0.0f && yOverlap >= 0.5f)
+         && mVelocity.x > 0.0f)
     {
         mPosition.x -= xOverlap * 1.01f;   // push left
-        mVelocity.x  = 0.0f;
+        mVelocity.x = 0.0f;
         mIsCollidingRight = true;
     }
 
     // COLLISION ON LEFT (moving left)
     if (map->isSolidTileAt(leftCentreProbe, &xOverlap, &yOverlap) 
-         && mVelocity.x < 0.0f && yOverlap >= 0.5f)
+         && mVelocity.x < 0.0f)
     {
         mPosition.x += xOverlap * 1.01;   // push right
         mVelocity.x  = 0.0f;
@@ -202,7 +202,13 @@ void Entity::animate(float deltaTime)
     }
 }
 
-void Entity::AIWander() { moveRight(); }
+void Entity::AIWander() 
+{ 
+    moveRight();
+    moveDown();
+}
+    
+     
 
 void Entity::AIFollow(Entity *target)
 {
@@ -215,7 +221,10 @@ void Entity::AIFollow(Entity *target)
 
     case WALKING:
         if (mPosition.x > target->getPosition().x) moveLeft();
-        else  moveRight();
+        else if (mPosition.x < target->getPosition().x) moveRight();
+
+        if (mPosition.y > target->getPosition().y) { moveUp(); } 
+        else if (mPosition.y < target->getPosition().y) { moveDown();}
         break;
     
     default:
@@ -224,18 +233,25 @@ void Entity::AIFollow(Entity *target)
 }
 void Entity::AIFlyer(Entity* target)
 {
-    if (mPosition.x < target->getPosition().x) {
-        moveRight();
-    } else {
-        moveLeft();
+    if (mIsCollidingRight) {
+        mMovement.x = -1.0f;
+        mDirection = LEFT;
     }
-    
-    if (mPosition.y < target->getPosition().y) {
-        mMovement.y = 1.0f;  
-    } else {
-        mMovement.y = -1.0f; 
+    else if (mIsCollidingLeft) {
+        mMovement.x = 1.0f;
+        mDirection = RIGHT;
+    }
+    else {
+        if (mDirection == RIGHT) {
+            moveRight();
+        }
+        else {
+            moveLeft();
+        }
     }
 }
+
+
 
 void Entity::AIActivate(Entity *target)
 {
@@ -266,8 +282,9 @@ void Entity::update(float deltaTime, Entity *player, Map *map,
     resetColliderFlags();
 
     mVelocity.x = mMovement.x * mSpeed;
+    mVelocity.y = mMovement.y * mSpeed;
 
-    mVelocity.x += mAcceleration.x * deltaTime;
+   /*  mVelocity.x += mAcceleration.x * deltaTime;
     mVelocity.y += mAcceleration.y * deltaTime;
 
     // ––––– JUMPING ––––– //
@@ -279,7 +296,7 @@ void Entity::update(float deltaTime, Entity *player, Map *map,
         // STEP 2: The player now acquires an upward velocity
         mVelocity.y -= mJumpingPower;
     }
-
+ */
     mPosition.y += mVelocity.y * deltaTime;
     checkCollisionY(collidableEntities, collisionCheckCount);
     checkCollisionY(map);
@@ -288,7 +305,7 @@ void Entity::update(float deltaTime, Entity *player, Map *map,
     checkCollisionX(collidableEntities, collisionCheckCount);
     checkCollisionX(map);
 
-    if (mTextureType == ATLAS && GetLength(mMovement) != 0 && mIsCollidingBottom) 
+    if (mTextureType == ATLAS && GetLength(mMovement) != 0 ) 
         animate(deltaTime);
 }
 

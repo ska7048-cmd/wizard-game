@@ -39,8 +39,9 @@ void Menu::render()
 
     int boxWidth = 720;
     int boxHeight = 160;
-    int boxX = mOrigin.x - boxWidth / 2;
-    int boxY = 260;
+    int screenCenterX = 500;
+    int boxX = screenCenterX - boxWidth / 2;
+    int boxY = 350;
 
 
     DrawRectangle(boxX, boxY, boxWidth, boxHeight, Fade(BLACK, 0.70f));
@@ -53,7 +54,7 @@ void Menu::render()
         
         DrawText(
             currentInstruction,
-            mOrigin.x - textWidth / 2,
+            screenCenterX - textWidth / 2,
             boxY + 70,
             26,
             RAYWHITE
@@ -62,17 +63,17 @@ void Menu::render()
         // Prompt
         const char* prompt = "Press SPACE for next";
         int promptWidth = MeasureText(prompt, 22);
-        DrawText(prompt, mOrigin.x - promptWidth / 2, boxY + boxHeight + 35, 22, GRAY);
+        DrawText(prompt, screenCenterX - promptWidth / 2, boxY + boxHeight + 35, 22, GRAY);
     }
     else
     {
         const char* readyText = "Good luck escaping the library!";
         int readyWidth = MeasureText(readyText, 28);
-        DrawText(readyText, mOrigin.x - readyWidth / 2, boxY + 65, 28, RAYWHITE);
+        DrawText(readyText, screenCenterX - readyWidth / 2, boxY + 65, 28, RAYWHITE);
         
         const char* startText = "Press ENTER to begin";
         int startWidth = MeasureText(startText, 26);
-        DrawText(startText, mOrigin.x - startWidth / 2, boxY + boxHeight + 35, 26, GRAY);
+        DrawText(startText, screenCenterX - startWidth / 2, boxY + boxHeight + 35, 26, GRAY);
     }
 
    

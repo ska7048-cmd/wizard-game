@@ -1,0 +1,258 @@
+#include "LevelB.h"
+
+LevelB::LevelB()                                      : Scene { {0.0f}, nullptr   } {}
+LevelB::LevelB(Vector2 origin, const char *bgHexCode) : Scene { origin, bgHexCode } {}
+
+LevelB::~LevelB() { shutdown(); }
+
+void LevelB::initialise()
+{
+   mGameState.nextSceneID = -1;
+   mGameState.bgm = LoadMusicStream("assets/game/vampires_piano.wav");
+   mPickupSound = LoadSound("assets/game/catpickup.mp3");
+   mSpottedSound = LoadSound("assets/game/spotted.mp3");
+   mLevelCompleteSound = LoadSound("assets/game/level_complete.mp3");
+   
+   SetMusicVolume(mGameState.bgm, 0.3f);
+   PlayMusicStream(mGameState.bgm);
+
+   const char* itemImages[5] = {
+      "assets/items/item4.png",
+      "assets/items/item6.png",
+      "assets/items/item7.png",
+      "assets/items/item1.png",
+      "assets/items/item2.png"
+   };
+
+   /*
+      ----------- MAP -----------
+   */
+   mGameState.map = new Map(
+      LEVEL_WIDTH, LEVEL_HEIGHT,   // map grid cols & rows
+      (unsigned int *) mLevelData, // grid data
+      "assets/game/tileset.png",   // texture filepath
+      TILE_DIMENSION,              // tile size
+      5, 1,                        // texture cols & rows
+      {500.0f, 300.0f}                      // in-game origin
+   );
+
+
+    /*
+      ----------- PROTAGONIST -----------
+   */
+   std::map<Direction, std::vector<int>> xochitlAnimationAtlas = {
+      {DOWN,  { 0, 1, 2, 3 }},       
+      {RIGHT,  { 4, 5, 6, 7 }},       
+      {LEFT, { 8, 9, 10, 11}},       
+      {UP,    { 12, 13, 14, 15}},     
+   };
+
+   mGameState.xochitl = new Entity(
+      {500.0f, 400.0f}, // position
+      {75.0f, 75.0f},             // scale
+      "assets/game/harry.jpeg",                   // texture file address
+      ATLAS,                                    // single image or atlas?
+      { 4, 4 },                                 // atlas dimensions
+      xochitlAnimationAtlas,                    // actual atlas
+      PLAYER                                    // entity type
+   );
+
+   mGameState.xochitl->setSpeed(150);
+   mGameState.xochitl->setColliderDimensions({30.0f, 30.0f}); 
+
+   /*
+      ----------- MR FLINCH -----------
+   */
+   //Mr Flinch
+   std::map<Direction, std::vector<int>> flinchAnimationAtlas = {
+      {DOWN,  { 0, 1, 2 }},     
+      {LEFT,  { 3, 4, 5 }},     
+      {RIGHT, { 6, 7, 8 }},   
+      {UP,    { 9, 10, 11 }}   
+   };
+
+
+  
+   mMrFlinch = new Entity(
+      {300.0f, 200.0f},
+      {40.0f, 40.0f},  
+      "assets/game/mrflinch.png",  
+      ATLAS,  
+      {4, 3},  
+      flinchAnimationAtlas, 
+      ENEMY  
+   );
+   mMrFlinch->setAIType(WANDERER);
+   mMrFlinch->setAIState(WALKING);
+   mMrFlinch->setSpeed(15); 
+
+   /*
+      ----------- CAT -----------
+   */
+   std::map<Direction, std::vector<int>> catAnimationAtlas = {
+      {DOWN,  { 0, 1, 2, 3 }},     
+      {LEFT,  { 0, 1, 2, 3 }},     
+      {RIGHT, { 0, 1, 2, 3 }},   
+      {UP,    { 0, 1, 2, 3 }}   
+   };
+
+
+  
+   mCat = new Entity(
+      {700.0f, 300.0f},
+      {60.0f, 60.0f},  
+      "assets/game/cat.png",  
+      ATLAS,  
+      {1, 4},  
+      catAnimationAtlas, 
+      ENEMY  
+   );
+   mCat->setAIType(FOLLOWER);
+   mCat->setAIState(IDLE);
+   mCat->setColliderDimensions({30.0f, 30.0f});
+   mCat->setSpeed(10); 
+
+
+
+   /*
+      ----------- ITEMS -----------
+   */
+
+   Vector2 itemPositions[5] = {
+      {200.0f, 150.0f}, 
+      {800.0f, 150.0f}, 
+      {350.0f, 325.0f}, 
+      {650.0f, 300.0f},
+      {500.0f, 450.0f}  
+   };
+   for (int i = 0; i <TOTAL_ITEMS; i++){
+      mItems[i] = new Entity(
+         itemPositions[i],
+         {25.0f, 25.0f},
+         itemImages[i],
+         NPC
+      );
+      mItemCollected[i] = false;
+   }
+   mItemsCollectedCount = 0;
+
+   /*
+      ----------- CAMERA -----------
+   */
+   mGameState.camera = { 0 };                                    // zero initialize
+   mGameState.camera.target = mGameState.xochitl->getPosition(); // camera follows player
+   mGameState.camera.offset = mOrigin;                           // camera offset to center of screen
+   mGameState.camera.rotation = 0.0f;                            // no rotation
+   mGameState.camera.zoom = 1.0f;                                // default zoom
+}
+
+void LevelB::update(float deltaTime)
+{
+   UpdateMusicStream(mGameState.bgm);
+   extern int gPlayerLives;
+
+   mGameState.xochitl->resetMovement();
+  
+   if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) {
+      mGameState.xochitl->moveUp();
+   }
+   if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)) {
+      mGameState.xochitl->moveDown();
+   }
+   if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) {
+      mGameState.xochitl->moveLeft();
+   }
+   if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) {
+      mGameState.xochitl->moveRight();
+   }
+
+   if (GetLength(mGameState.xochitl->getMovement()) != 0) {
+      mGameState.xochitl->normaliseMovement();
+   }
+   mGameState.xochitl->update(deltaTime, nullptr, mGameState.map, nullptr, 0);  
+   mMrFlinch->update(deltaTime, mGameState.xochitl, mGameState.map, nullptr, 0);
+   mCat->update(deltaTime, mGameState.xochitl, nullptr, nullptr, 0);
+
+   float distanceToFlinch = Vector2Distance(mGameState.xochitl->getPosition(), mMrFlinch->getPosition());
+   float distanceToCat = Vector2Distance(mGameState.xochitl->getPosition(), mCat->getPosition());
+
+   float minDistance = fmin(distanceToFlinch, distanceToCat);
+
+   if (minDistance < 150.0f) {
+      if (!IsSoundPlaying(mSpottedSound)) {
+         PlaySound(mSpottedSound);
+      }
+   }
+   else {
+      if (IsSoundPlaying(mSpottedSound)) {
+         StopSound(mSpottedSound);
+      }
+   }
+
+   if (mGameState.xochitl->checkCollision(mMrFlinch) || mGameState.xochitl->checkCollision(mCat)) {
+      StopSound(mSpottedSound);
+      gPlayerLives--;
+      
+      if (gPlayerLives <= 0) {
+         mGameState.nextSceneID = 5;  
+      } else {
+         mGameState.nextSceneID = 1;  
+      }
+      return;
+   }
+
+   Vector2 currentPlayerPosition = { mGameState.xochitl->getPosition().x, mGameState.xochitl->getPosition().y };
+   panCamera(&mGameState.camera, &currentPlayerPosition);
+
+   checkItems();
+   checkDoorExit();
+}
+
+void LevelB::render()
+{
+    ClearBackground(ColorFromHex("#080822ff"));
+
+/*    DrawTexturePro(
+        mBackgroundTexture,
+        {0, 0, (float)mBackgroundTexture.width, (float)mBackgroundTexture.height},
+        {0, 0, 1000, 600}, 
+        {0, 0},
+        0.0f,
+        WHITE
+   ); */
+
+   mGameState.map->render();
+
+   for (int i = 0; i < TOTAL_ITEMS; i++) {
+      if (!mItemCollected[i]) {
+         mItems[i]->render();
+      }
+   }
+
+   mGameState.xochitl->render();
+   mMrFlinch->render();
+   mCat->render();
+}
+
+void LevelB::shutdown()
+{
+   StopMusicStream(mGameState.bgm);
+   StopSound(mSpottedSound);
+   StopSound(mPickupSound);
+   StopSound(mLevelCompleteSound);
+
+   delete mGameState.xochitl;
+   delete mGameState.map;
+   delete mMrFlinch;
+   delete mCat;
+
+   for (int i = 0; i < TOTAL_ITEMS; i++) {
+      delete mItems[i];
+   }
+
+   // UnloadTexture(mBackgroundTexture);
+   UnloadMusicStream(mGameState.bgm);
+   UnloadSound(mLevelCompleteSound); 
+   UnloadSound(mPickupSound);
+   UnloadSound(mSpottedSound);
+}

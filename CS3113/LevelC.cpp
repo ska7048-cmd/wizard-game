@@ -7,184 +7,340 @@ LevelC::~LevelC() { shutdown(); }
 
 void LevelC::initialise()
 {
-    mGameState.nextSceneID = -1;
-    mBackgroundTexture = LoadTexture("assets/game/background.png");
-    mGameState.bgm = LoadMusicStream("assets/game/classichorror1.mp3");
-    mGameState.fallingSound = LoadSound("assets/game/Falling.mp3");
-    
-    SetMusicVolume(mGameState.bgm, 0.33f);
-    mGameState.jumpSound = LoadSound("assets/game/jumpland.wav");
-    mLevelCompleteSound = LoadSound("assets/game/level_complete.mp3");
-        /*
-        ----------- MAP -----------
-    */
-    mGameState.map = new Map(
-        LEVEL_WIDTH, LEVEL_HEIGHT,   // map grid cols & rows
-        (unsigned int *) mLevelData, // grid data
-        "assets/game/tileset.png",   // texture filepath
-        TILE_DIMENSION,              // tile size
-        8, 1,                        // texture cols & rows
-        mOrigin                      // in-game origin
-    );
+   mGameState.nextSceneID = -1;
+   mGameState.bgm = LoadMusicStream("assets/game/vampires_piano.wav");
+   mPickupSound = LoadSound("assets/game/catpickup.mp3");
+   mSpottedSound = LoadSound("assets/game/spotted.mp3");
+   mLevelCompleteSound = LoadSound("assets/game/level_complete.mp3");
+   
+   SetMusicVolume(mGameState.bgm, 0.3f);
+   PlayMusicStream(mGameState.bgm);
+
+   const char* itemImages[5] = {
+      "assets/items/item4.png",
+      "assets/items/item6.png",
+      "assets/items/item7.png",
+      "assets/items/item1.png",
+      "assets/items/item2.png"
+   };
+
+   /*
+      ----------- MAP -----------
+   */
+   mGameState.map = new Map(
+      LEVEL_WIDTH, LEVEL_HEIGHT,   // map grid cols & rows
+      (unsigned int *) mLevelData, // grid data
+      "assets/game/tileset.png",   // texture filepath
+      TILE_DIMENSION,              // tile size
+      5, 1,                        // texture cols & rows
+      {500.0f, 300.0f}                      // in-game origin
+   );
+
 
     /*
-        ----------- PROTAGONIST -----------
-    */
+      ----------- PROTAGONIST -----------
+   */
+   std::map<Direction, std::vector<int>> xochitlAnimationAtlas = {
+      {DOWN,  { 0, 1, 2, 3 }},       
+      {RIGHT,  { 4, 5, 6, 7 }},       
+      {LEFT, { 8, 9, 10, 11}},       
+      {UP,    { 12, 13, 14, 15}},     
+   };
 
-    std::map<Direction, std::vector<int>> xochitlAnimationAtlas = {
-        {DOWN,  { 0, 1, 2 }},       
-        {LEFT,  { 3, 4, 5 }},       
-        {RIGHT, { 6, 7, 8 }},       
-        {UP,    { 9, 10, 11 }},     
+   mGameState.xochitl = new Entity(
+      {500.0f, 400.0f}, // position
+      {100.0f, 90.0f},             // scale
+      "assets/game/harry.jpeg",                   // texture file address
+      ATLAS,                                    // single image or atlas?
+      { 4, 4 },                                 // atlas dimensions
+      xochitlAnimationAtlas,                    // actual atlas
+      PLAYER                                    // entity type
+   );
+
+   mGameState.xochitl->setSpeed(150);
+   mGameState.xochitl->setColliderDimensions({30.0f, 30.0f}); 
+
+   /*
+      ----------- MR FLINCH -----------
+   */
+   //Mr Flinch
+   std::map<Direction, std::vector<int>> flinchAnimationAtlas = {
+      {DOWN,  { 0, 1, 2 }},     
+      {LEFT,  { 3, 4, 5 }},     
+      {RIGHT, { 6, 7, 8 }},   
+      {UP,    { 9, 10, 11 }}   
+   };
+
+
+  
+   mMrFlinch = new Entity(
+      {300.0f, 200.0f},
+      {40.0f, 40.0f},  
+      "assets/game/mrflinch.png",  
+      ATLAS,  
+      {4, 3},  
+      flinchAnimationAtlas, 
+      ENEMY  
+   );
+   mMrFlinch->setAIType(WANDERER);
+   mMrFlinch->setAIState(WALKING);
+   mMrFlinch->setSpeed(15); 
+
+   /*
+      ----------- CAT -----------
+   */
+   std::map<Direction, std::vector<int>> catAnimationAtlas = {
+      {DOWN,  { 0, 1, 2, 3 }},     
+      {LEFT,  { 0, 1, 2, 3 }},     
+      {RIGHT, { 0, 1, 2, 3 }},   
+      {UP,    { 0, 1, 2, 3 }}   
+   };
+
+
+  
+   mCat = new Entity(
+      {700.0f, 300.0f},
+      {80.0f, 80.0f},  
+      "assets/game/cat.png",  
+      ATLAS,  
+      {1, 4},  
+      catAnimationAtlas, 
+      ENEMY  
+   );
+   mCat->setAIType(FOLLOWER);
+   mCat->setAIState(IDLE);
+   mCat->setColliderDimensions({30.0f, 30.0f});
+   mCat->setSpeed(10); 
+
+
+   mOwl = new Entity(
+      {400.0f, 100.0f},            
+      {30.0f, 40.0f},              
+      "assets/game/owl.png",     
+      ENEMY                         
+   );
+   mOwl->setAIType(FLYER);
+   mOwl->setAIState(WALKING);
+   mOwl->setSpeed(8);
+   mOwl->setColliderDimensions({30.0f, 30.0f});
+
+
+
+   /*
+      ----------- ITEMS -----------
+   */
+
+   Vector2 itemPositions[5] = {
+      {250.0f, 150.0f}, 
+      {100.0f, 600.0f}, 
+      {350.0f, 325.0f}, 
+      {800.0f, 600.0f},
+      {800.0f, 150.0f}   
     };
+   for (int i = 0; i <TOTAL_ITEMS; i++){
+      mItems[i] = new Entity(
+         itemPositions[i],
+         {25.0f, 25.0f},
+         itemImages[i],
+         NPC
+      );
+      mItemCollected[i] = false;
+    }
+   mItemsCollectedCount = 0;
 
-    std::map<Direction, std::vector<int>> reaperAnimationAtlas = {
-        {DOWN, {0, 1, 2}},      // top row
-        {LEFT, {3, 4, 5}},      // second row
-        {RIGHT, {6, 7, 8}},     // third row
-        {UP, {9, 10, 11}},      // bottom row
-    };
-
-    mEnemy = new Entity(
-        {mOrigin.x + 200.0f, mOrigin.y - 200.0f},  
-        {70.0f, 80.0f},                            
-        "assets/game/scary.png",                   
-        ATLAS,                                     
-        {3, 4},                                    
-        reaperAnimationAtlas,                      
-        ENEMY                                      
-    );
-
-    mEnemy->setAIType(FLYER);                     
-    mEnemy->setAIState(WALKING);
-    mEnemy->setAcceleration({0.0f, 0.0f});      
-    mEnemy->setSpeed(60);  
-
-
-    float sizeRatio  = 50.0f / 64.0f;
-    
-
-    // Assets from @see https://sscary.itch.io/the-adventurer-female
-    mGameState.xochitl = new Entity(
-        {mOrigin.x -300.f, mOrigin.y - 250.0f}, // position
-        {70.0f * sizeRatio, 75.0f},             // scale
-        "assets/game/witch.jpg",                   // texture file address
-        ATLAS,                                    // single image or atlas?
-        { 4.6, 3 },                                 // atlas dimensions
-        xochitlAnimationAtlas,                    // actual atlas
-        PLAYER                                    // entity type
-    );
-
-    mGameState.xochitl->setJumpingPower(550.0f);
-    mGameState.xochitl->setColliderDimensions({
-        mGameState.xochitl->getScale().x / 0.5f,
-        mGameState.xochitl->getScale().y / 1.0f
-    });
-    mGameState.xochitl->setAcceleration({0.0f, ACCELERATION_OF_GRAVITY});
-
-    /*
-        ----------- CAMERA -----------
-    */
-    mGameState.camera = { 0 };                                    // zero initialize
-    mGameState.camera.target = mGameState.xochitl->getPosition(); // camera follows player
-    mGameState.camera.offset = mOrigin;                           // camera offset to center of screen
-    mGameState.camera.rotation = 0.0f;                            // no rotation
-    mGameState.camera.zoom = 1.0f;                                // default zoom
+   /*
+      ----------- CAMERA -----------
+   */
+   mGameState.camera = { 0 };                                    // zero initialize
+   mGameState.camera.target = mGameState.xochitl->getPosition(); // camera follows player
+   mGameState.camera.offset = mOrigin;                           // camera offset to center of screen
+   mGameState.camera.rotation = 0.0f;                            // no rotation
+   mGameState.camera.zoom = 1.0f;                                // default zoom
 }
 
 void LevelC::update(float deltaTime)
 {
-    UpdateMusicStream(mGameState.bgm);
-    extern int gPlayerLives;
+   UpdateMusicStream(mGameState.bgm);
+   extern int gPlayerLives;
 
+   mGameState.xochitl->resetMovement();
+  
+   if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) {
+      mGameState.xochitl->moveUp();
+   }
+   if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)) {
+      mGameState.xochitl->moveDown();
+   }
+   if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) {
+      mGameState.xochitl->moveLeft();
+   }
+   if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) {
+      mGameState.xochitl->moveRight();
+   }
 
+   if (GetLength(mGameState.xochitl->getMovement()) != 0) {
+      mGameState.xochitl->normaliseMovement();
+   }
+   mGameState.xochitl->update(deltaTime, nullptr, mGameState.map, nullptr, 0);  
+   mMrFlinch->update(deltaTime, mGameState.xochitl, mGameState.map, nullptr, 0);
+   mCat->update(deltaTime, mGameState.xochitl, nullptr, nullptr, 0);
+   mOwl->update(deltaTime, mGameState.xochitl, mGameState.map, nullptr, 0);
 
-    mGameState.xochitl->update(
-        deltaTime,      // delta time / fixed timestep
-        nullptr,        // player
-        mGameState.map, // map
-        nullptr,        // collidable entities
-        0               // col. entity count
-    );
+   float distanceToFlinch = Vector2Distance(mGameState.xochitl->getPosition(), mMrFlinch->getPosition());
+   float distanceToCat = Vector2Distance(mGameState.xochitl->getPosition(), mCat->getPosition());
+   float distanceToOwl = Vector2Distance(mGameState.xochitl->getPosition(), mOwl->getPosition());
 
-    mEnemy->update(deltaTime, mGameState.xochitl, mGameState.map, nullptr, 0);
+   float minDistance = fmin(distanceToFlinch, distanceToCat);
 
-    if (mGameState.xochitl->checkCollision(mEnemy)) {
-        PlaySound(mGameState.fallingSound);
-        gPlayerLives--;
-        
-        if (gPlayerLives <= 0) {
-            mGameState.nextSceneID = 5;  
-        } else {
-            mGameState.nextSceneID = 1;  
-        }
-        return;
-    }
+   if (minDistance < 150.0f) {
+      if (!IsSoundPlaying(mSpottedSound)) {
+         PlaySound(mSpottedSound);
+      }
+   }
+   else {
+      if (IsSoundPlaying(mSpottedSound)) {
+         StopSound(mSpottedSound);
+      }
+   }
 
-    Vector2 currentPlayerPosition = { mGameState.xochitl->getPosition().x, mGameState.xochitl->getPosition().y };
-    if (mGameState.xochitl->getPosition().y > 800.0f){
-        PlaySound(mLevelCompleteSound);
-        mGameState.nextSceneID = 4;
-        return;
-    }
-
-    panCamera(&mGameState.camera, &currentPlayerPosition);
-   
-   Vector2 playerPos = mGameState.xochitl->getPosition();
-
-   float feetY = playerPos.y + (mGameState.xochitl->getScale().y / 2.0f) + 5.0f;  // i had to get help with this
-   int playerTileX = (int)((playerPos.x - mOrigin.x + (LEVEL_WIDTH * TILE_DIMENSION) / 2) / TILE_DIMENSION);
-   int playerTileY = (int)((feetY - mOrigin.y + (LEVEL_HEIGHT * TILE_DIMENSION) / 2) / TILE_DIMENSION);
-
-   if (playerTileX >= 0 && playerTileX < LEVEL_WIDTH && 
-      playerTileY >= 0 && playerTileY < LEVEL_HEIGHT) {
+   if (mGameState.xochitl->checkCollision(mMrFlinch) || mGameState.xochitl->checkCollision(mCat) ||  mGameState.xochitl->checkCollision(mOwl)) {
+      StopSound(mSpottedSound);
+      gPlayerLives--;
       
+      if (gPlayerLives <= 0) {
+         mGameState.nextSceneID = 5;  
+      } else {
+         mGameState.nextSceneID = 1;  
+      }
+      return;
+   }
+
+   Vector2 currentPlayerPosition = { mGameState.xochitl->getPosition().x, mGameState.xochitl->getPosition().y };
+   panCamera(&mGameState.camera, &currentPlayerPosition);
+
+   checkItems();
+   checkDoorExit();
+}
+
+void LevelC::checkItems(){
+   for ( int i = 0; i < TOTAL_ITEMS; i++) {
+      if(!mItemCollected[i] && mGameState.xochitl->checkCollision(mItems[i])){
+         mItemCollected[i] = true;
+         mItems[i]->deactivate(); 
+         mItemsCollectedCount++;
+         PlaySound(mPickupSound);
+         int currentSpeed = mCat->getSpeed();
+         mCat->setSpeed(currentSpeed + 2);
+      }
+   }
+}
+
+void LevelC::checkDoorExit(){
+
+   Vector2 playerPos = mGameState.xochitl->getPosition();
+   Vector2 colliderDims = mGameState.xochitl->getColliderDimensions();
+   Vector2 mapOrigin = {500.0f, 300.0f};
+
+   Vector2 rightEdgePosition = { 
+      playerPos.x + colliderDims.x / 2.0f,  // same thing but with the side
+      playerPos.y
+   };
+
+   int playerTileX = (int)((rightEdgePosition.x - mapOrigin.x + (LEVEL_WIDTH * TILE_DIMENSION) / 2) / TILE_DIMENSION);
+   int playerTileY = (int)((rightEdgePosition.y - mapOrigin.y + (LEVEL_HEIGHT * TILE_DIMENSION) / 2) / TILE_DIMENSION);
+
+   if (playerTileX >= 0 && playerTileX < LEVEL_WIDTH && playerTileY >= 0 && playerTileY < LEVEL_HEIGHT) {
       int tileIndex = playerTileY * LEVEL_WIDTH + playerTileX;
       int tileType = mLevelData[tileIndex];
 
-      if (tileType == 2) {
-         gPlayerLives--;
-         
-         if (gPlayerLives <= 0) {
-               mGameState.nextSceneID = 5;  
-         } else {
-               mGameState.nextSceneID = 3;  
+      if (tileType == 5) {
+         mShowExitPrompt = true;
+         if (mItemsCollectedCount >= TOTAL_ITEMS && IsKeyPressed(KEY_E)) {
+            PlaySound(mLevelCompleteSound);
+            mGameState.nextSceneID = 4; 
          }
       }
+      else {
+         mShowExitPrompt = false;
+      }
    }
-   
 }
+
+void LevelC::drawScreen(){
+   char itemText[32];
+   sprintf(itemText, "Items: %d/%d", mItemsCollectedCount, TOTAL_ITEMS);
+   DrawText(itemText, 20,20,24, WHITE);
+
+
+   extern int gPlayerLives;
+   char livesText[32];
+   sprintf(livesText, "Lives: %d", gPlayerLives);
+   DrawText(livesText, 20,50,24, RED);
+
+   if(mShowExitPrompt){
+      if (mItemsCollectedCount >= TOTAL_ITEMS){
+         const char* prompt = "Press E to exit to Level 3!";
+         int promptWidth = MeasureText(prompt, 24); // I saw some kid in class have this and i really liked it
+         DrawRectangle(0, 540, 1000, 60, ColorAlpha(BLACK, 0.7f));
+         DrawText(prompt, 500 - promptWidth / 2, 550, 24, RED);
+      }
+      else{
+         const char* prompt = "Door locked! Find all books first.";
+         int promptWidth = MeasureText(prompt, 20); 
+         DrawRectangle(0, 540, 1000, 60, ColorAlpha(BLACK, 0.7f));
+         DrawText(prompt, 500 - promptWidth / 2, 550, 24, RED);
+      }
+   }
+
+}
+
 void LevelC::render()
 {
-    ClearBackground(ColorFromHex(mBGColourHexCode));
-    
-    if (mBackgroundTexture.id > 0) {
-        DrawTexturePro(
-            mBackgroundTexture,
-            {0, 0, (float)mBackgroundTexture.width, (float)mBackgroundTexture.height},
-            {-500, -300, 2000, 1200},
-            {0, 0},
-            0.0f,
-            WHITE
-        );
-    }
-    
-    mGameState.map->render();
-    mEnemy->render();
-    mGameState.xochitl->render();
+    ClearBackground(ColorFromHex("#080822ff"));
+
+/*    DrawTexturePro(
+        mBackgroundTexture,
+        {0, 0, (float)mBackgroundTexture.width, (float)mBackgroundTexture.height},
+        {0, 0, 1000, 600}, 
+        {0, 0},
+        0.0f,
+        WHITE
+   ); */
+
+   mGameState.map->render();
+
+   for (int i = 0; i < TOTAL_ITEMS; i++) {
+      if (!mItemCollected[i]) {
+         mItems[i]->render();
+      }
+   }
+
+   mGameState.xochitl->render();
+   mMrFlinch->render();
+   mCat->render();
+   mOwl->render();
 }
 
 void LevelC::shutdown()
 {
-    if (mBackgroundTexture.id > 0) {
-        UnloadTexture(mBackgroundTexture);
-    }
-    delete mGameState.xochitl;
-    delete mGameState.map;
-    delete mEnemy;
+   StopMusicStream(mGameState.bgm);
+   StopSound(mSpottedSound);
+   StopSound(mPickupSound);
+   StopSound(mLevelCompleteSound);
 
-    UnloadSound(mGameState.fallingSound);
-    UnloadMusicStream(mGameState.bgm); 
-    UnloadSound(mLevelCompleteSound);
+   delete mGameState.xochitl;
+   delete mGameState.map;
+   delete mMrFlinch;
+   delete mCat;
+   delete mOwl;
+
+   for (int i = 0; i < TOTAL_ITEMS; i++) {
+      delete mItems[i];
+   }
+
+   // UnloadTexture(mBackgroundTexture);
+   UnloadMusicStream(mGameState.bgm);
+   UnloadSound(mLevelCompleteSound); 
+   UnloadSound(mPickupSound);
+   UnloadSound(mSpottedSound);
 }
-
