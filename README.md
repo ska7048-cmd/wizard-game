@@ -2,13 +2,19 @@
 
 A 2D platformer game developed for NYU CS3113 (Intro to Game Programming) featuring custom collision detection, multiple AI behaviors, and multi-level progression.
 
-![Game Screenshot](assets/screenshot.png)
-*Screenshot coming soon - game features tile-based maps, animated sprites, and enemy AI*
+## 📸 Screenshots
+
+### Main Menu
+![Main Menu](assets/homescreen.png)
+
+### Level Gameplay
+![Level Gameplay](assets/levels.png)
+*Collect magical books while avoiding enemies with different AI behaviors*
 
 ## 🎮 About
 
 Players control Harry Potter navigating through three levels of a magical library, collecting books while avoiding enemies with different AI behaviors. The game demonstrates advanced game programming concepts including custom physics, AI state machines, and scene management.
-![Uploading Screenshot 2026-01-08 at 3.00.26 AM.png…]()
+
 
 ## ✨ Features
 
